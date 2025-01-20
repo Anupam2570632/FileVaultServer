@@ -35,7 +35,7 @@ async function run() {
     );
 
     const myDB = client.db("FileVault");
-    const useColl = myDB.collection("registeredUser");
+    const userColl = myDB.collection("registeredUser");
 
     app.post("/users", async(req, res) => {
       const userData = req.body;
@@ -45,11 +45,19 @@ async function run() {
       const saltRounds = 10; 
       const hashedPass = await bcrypt.hash(plainPass, saltRounds);
 
-      console.log(`Plain Password: ${plainPass}`);
-      console.log(`Hashed Password: ${hashedPass}`);
+      // console.log(`Plain Password: ${plainPass}`);
+      // console.log(`Hashed Password: ${hashedPass}`);
+      const addData ={
+        username: userData.username,
+        email: userData.email,
+        passcode: hashedPass
+      }
 
-      res.send({ data: { success: true, hashedPass } });
+      const result = await userColl.insertOne(addData)
+
+      res.send(result);
     });
+
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
