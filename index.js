@@ -1,7 +1,6 @@
 const express = require("express");
 const app = express();
-const bcrypt = require('bcrypt');
-
+const bcrypt = require("bcrypt");
 
 require("dotenv").config();
 const port = 3000;
@@ -37,27 +36,49 @@ async function run() {
     const myDB = client.db("FileVault");
     const userColl = myDB.collection("registeredUser");
 
-    app.post("/users", async(req, res) => {
+    const bcrypt = require("bcrypt");
+
+    //user registration api
+    app.post("/users", async (req, res) => {
       const userData = req.body;
+      const plainPass = userData.passCode;
 
-      const plainPass= userData.passCode;
-
-      const saltRounds = 10; 
+      const saltRounds = 10;
       const hashedPass = await bcrypt.hash(plainPass, saltRounds);
 
-      // console.log(`Plain Password: ${plainPass}`);
-      // console.log(`Hashed Password: ${hashedPass}`);
-      const addData ={
-        username: userData.username,
-        email: userData.email,
-        passcode: hashedPass
+      // Check if the username or email already exists
+      const existingUser = await userColl.findOne({
+        $or: [{ username: userData.username }, { email: userData.email }],
+      });
+
+      if (existingUser) {
+        if (existingUser.username === userData.username) {
+          return res.status(400).send({ message: "Username already exists" });
+        }
+        if (existingUser.email === userData.email) {
+          return res.status(400).send({ message: "Email already exists" });
+        }
       }
 
-      const result = await userColl.insertOne(addData)
+      // Prepare the new user data to insert
+      const addData = {
+        username: userData.username,
+        email: userData.email,
+        passcode: hashedPass,
+      };
 
-      res.send(result);
+      try {
+        const result = await userColl.insertOne(addData);
+        res.status(201).send({
+          success: true,
+          message: "User created successfully",
+          data: result,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ error: "Internal server error" });
+      }
     });
-
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
