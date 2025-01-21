@@ -36,8 +36,6 @@ async function run() {
     const myDB = client.db("FileVault");
     const userColl = myDB.collection("registeredUser");
 
-    const bcrypt = require("bcrypt");
-
     //user registration api
     app.post("/users", async (req, res) => {
       const userData = req.body;
@@ -78,6 +76,30 @@ async function run() {
         console.error(error);
         res.status(500).send({ error: "Internal server error" });
       }
+    });
+
+    //user login API
+    app.get("/user", async (req, res) => {
+      const { name, email, passCode } = req.query;
+      console.log(`name: ${name}, email: ${email}`);
+
+      const userServerData = await userColl.findOne({
+        $or: [{ username: name }, { email: email }],
+      });
+
+      const storedHash = userServerData.passcode;
+      bcrypt.compare(passCode, storedHash, (err, result) => {
+        if (err) {
+          console.error("Error comparing hashes:", err);
+          return;
+        }
+
+        if (result) {
+          console.log("Passcode is correct!");
+        } else {
+          console.log("Passcode is incorrect.");
+        }
+      });
     });
   } finally {
     // Ensures that the client will close when you finish/error
