@@ -37,7 +37,7 @@ async function run() {
     const userColl = myDB.collection("registeredUser");
 
     //user registration api
-    app.post("/users", async (req, res) => {
+    app.post("/user", async (req, res) => {
       const userData = req.body;
       const plainPass = userData.passCode;
 
@@ -80,24 +80,21 @@ async function run() {
 
     //user login API
     app.get("/user", async (req, res) => {
-      const { name, email, passCode } = req.query;
-      console.log(`name: ${name}, email: ${email}`);
+      const { email, passcode } = req.query;
+      console.log(`email: ${email}`);
 
-      const userServerData = await userColl.findOne({
-        $or: [{ username: name }, { email: email }],
-      });
+      const userServerData = await userColl.findOne({ email: email });
 
       const storedHash = userServerData.passcode;
-      bcrypt.compare(passCode, storedHash, (err, result) => {
+      bcrypt.compare(passcode, storedHash, (err, result) => {
         if (err) {
-          console.error("Error comparing hashes:", err);
-          return;
+          return res.status(500).send({ message: "Internal server error" });
         }
 
         if (result) {
-          console.log("Passcode is correct!");
+          res.status(200).send({ message: "Login successful", user: userServerData });
         } else {
-          console.log("Passcode is incorrect.");
+          res.status(401).send({ message: "Invalid passcode" });
         }
       });
     });
